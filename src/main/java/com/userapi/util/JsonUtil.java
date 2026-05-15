@@ -14,7 +14,9 @@ public class JsonUtil {
 
 
     public static String toJson(Object obj){
-        try{return mapper.writeValueAsString(obj);}catch(Exception e){return "{\"error\":\"Serialization failed\"}";}
+        try{return mapper.writeValueAsString(obj);}catch(Exception e){
+            return "{\"error\":\"Serialization failed\"}"
+                    ;}
     }
 
     public static <T> T fromJson(String json,Class<T> clazz) throws Exception{
