@@ -1,5 +1,6 @@
 package com.userapi.repository;
 
+import com.userapi.config.DatabaseConfig;
 import com.userapi.model.User;
 
 import javax.sql.DataSource;
@@ -28,6 +29,25 @@ public class UserRepository {
             int idx=1;
             if(country != null) ps.setString(idx++,country);
             ps.setInt(idx,page * size);
+            return mapResultSet(ps.executeQuery());
+        }
+    }
+//
+//    load data with specific limit
+
+    public List<User> findAllOffset(int page,int size,String country) throws SQLException{
+        int safeSize=Math.min(size,100);
+        int safeOffset=Math.max(page,0) * safeSize;
+
+
+        String sql="SELECT * FROM users" + (country !=null  ? "WHERE country=?":"") + " ORDER BY id LIMIT ? OFFSET";
+
+        try(Connection c= DatabaseConfig.getDataSource().getConnection(); PreparedStatement ps=c.prepareStatement(sql)){
+            int idx=1;
+            if(country != null) ps.setString(idx++,country);
+            ps.setInt(idx++,safeSize);
+            ps.setInt(idx,safeOffset);
+            ps.setFetchSize(safeSize);
             return mapResultSet(ps.executeQuery());
         }
     }

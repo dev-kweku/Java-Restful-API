@@ -16,8 +16,12 @@ public class UserService {
 
     public record PageResult(List<User> users, long total, int page, int size){}
     public PageResult getAll(int page,int size,String country)throws SQLException{
-        if (size > 100) size=100;
-        if(page < 0) page=0;
+        if (size <=0) size=20;
+        if(page >100) page=100;
+        if(page<0) page=0;
+
+
+
         long total=repo.count(country);
         List<User> users=repo.findAll(page,size,country);
 
