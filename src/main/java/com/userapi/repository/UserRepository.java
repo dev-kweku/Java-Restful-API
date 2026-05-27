@@ -158,6 +158,21 @@ public class UserRepository {
         }
     }
 
+//    optimized search using PostgreSQL ts vector
+
+    public List<User> search(String query,int limit) throws SQLException{
+        String sql= """
+                SELECT * FROM users WHERE to_tsvector('english',first_name || ' ' || last_name || ' ' || email)
+                @@ plainto_tsquery('english',?) LIMIT ?
+                """;
+
+        try(Connection c=ds.getConnection();PreparedStatement ps=c.prepareStatement(sql)){
+            ps.setString(1,query);
+            ps.setInt(2,limit);
+            return mapResultSet(ps.executeQuery());
+        }
+    }
+
 //    helpers
     private void setUserParams(PreparedStatement ps,User u) throws SQLException{
         ps.setString(1,u.getFirstName());
