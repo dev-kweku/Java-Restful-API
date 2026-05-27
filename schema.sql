@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS users(
 
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_country ON users(country);
-CREATE INDEX IF NOT EXISTS idx_users_asc  ON users(id ASC);
+CREATE INDEX IF NOT EXISTS idx_users_id_asc  ON users(id ASC);
 
 CREATE INDEX IF NOT EXISTS idx_users_fts ON users
     USING GIN (to_tsvector('english',first_name || ' ' || last_name || '' || email));
