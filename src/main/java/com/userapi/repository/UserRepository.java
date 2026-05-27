@@ -8,9 +8,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 public class UserRepository {
     private final DataSource ds;
@@ -32,6 +30,23 @@ public class UserRepository {
             return mapResultSet(ps.executeQuery());
         }
     }
+
+
+//    fetching the data by it keyset
+    public List<User> findAllKeyset(long afterId,int size,String country) throws SQLException{
+        String sql= """
+                SELECT *, COUNT(*) OVER() AS total_count FROM users WHERE id > ?
+                """+ (country != null ? "AND country = ?" : "") + "ORDER BY id ASC LIMIT ?";
+
+        try(Connection c=ds.getConnection();PreparedStatement ps=c.prepareStatement(sql)){
+            int idx=1;
+            ps.setLong(idx++,afterId);
+            if(country != null) ps.setString(idx++,country);
+            ps.setInt(idx,size);
+            return mapResultSet(ps.executeQuery());
+        }
+
+    }
 //
 //    load data with specific limit
 
@@ -40,7 +55,9 @@ public class UserRepository {
         int safeOffset=Math.max(page,0) * safeSize;
 
 
-        String sql="SELECT * FROM users" + (country !=null  ? "WHERE country=?":"") + " ORDER BY id LIMIT ? OFFSET";
+        String sql="SELECT * FROM users"
+                + (country !=null  ? "WHERE country=?":"")
+                + " ORDER BY id LIMIT ? OFFSET";
 
         try(Connection c= DatabaseConfig.getDataSource().getConnection(); PreparedStatement ps=c.prepareStatement(sql)){
             int idx=1;
@@ -95,6 +112,42 @@ public class UserRepository {
             ps.setLong(9,id);
             List<User> list=mapResultSet(ps.executeQuery());
             return list.isEmpty() ? Optional.empty() :Optional.of(list.getFirst());
+        }
+    }
+
+    private static final Set<String> ALLOWED_FIELDS= Set.of("name","email","phone");
+
+//    optimised partial update
+    public Optional<User> patch(long id, Map<String,Object> fields) throws SQLException{
+        if(fields.isEmpty()) return findById(id);
+
+        StringBuilder sql=new StringBuilder("UPDATE users SET");
+        List<Object> values=new ArrayList<>();
+//        fields.forEach((col,val)->{
+//            sql.append(col).append("= ?, ");
+//            values.add(val);
+//
+//
+//        });
+        for(Map.Entry<String,Object> entry:fields.entrySet()){
+            String col=entry.getKey();
+
+            if(ALLOWED_FIELDS.contains(col)){
+                throw new IllegalArgumentException("Invalid fields : " + col);
+            }
+
+            sql.append(col).append(" = ?, ");
+            values.add(entry.getValue());
+        }
+        sql.setLength(sql.length()-2);
+        sql.append("WHERE id = ? RETURNING *");
+        values.add(id);
+
+        try(Connection c=ds.getConnection();PreparedStatement ps=c.prepareStatement(sql.toString())){
+            for(int i=0;i<values.size();i++) ps.setObject(i+1,values.get(i));
+
+            List<User> list=mapResultSet(ps.executeQuery());
+            return list.isEmpty() ? Optional.empty():Optional.of(list.getFirst());
         }
     }
 
